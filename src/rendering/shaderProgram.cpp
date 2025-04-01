@@ -1,76 +1,97 @@
 #include "shaderProgram.h"
+
+#include <glm/gtc/type_ptr.hpp>
+
 #include <iostream>
+
 namespace Renderer {
-    ShaderProgram::ShaderProgram(const std::string& vertext_shader, const std::string& fragment_shader){
-        GLuint vertex_shaderID;
-        if(!createShader(vertext_shader, GL_VERTEX_SHADER, vertex_shaderID)){
-            std::cerr << "Error creating vertex shader" << std::endl;
+    ShaderProgram::ShaderProgram(const std::string& vertexShader, const std::string& fragmentShader)
+    {
+        GLuint vertexShaderID;
+        if (!createShader(vertexShader, GL_VERTEX_SHADER, vertexShaderID))
+        {
+            std::cerr << "VERTEX SHADER compile-time error" << std::endl;
             return;
         }
-        GLuint fragment_shaderID;
-        if(!createShader(fragment_shader, GL_FRAGMENT_SHADER, fragment_shaderID)){
-            std::cerr << "Error creating fragment shader" << std::endl;
+
+        GLuint fragmentShaderID;
+        if (!createShader(fragmentShader, GL_FRAGMENT_SHADER, fragmentShaderID))
+        {
+            std::cerr << "FRAGMENT SHADER compile-time error" << std::endl;
+            glDeleteShader(vertexShaderID);
             return;
         }
+
         m_ID = glCreateProgram();
-        glAttachShader(m_ID, vertex_shaderID);
-        glAttachShader(m_ID, fragment_shaderID);
+        glAttachShader(m_ID, vertexShaderID);
+        glAttachShader(m_ID, fragmentShaderID);
         glLinkProgram(m_ID);
+
         GLint success;
         glGetProgramiv(m_ID, GL_LINK_STATUS, &success);
-        if(!success){
-            GLchar infolog[1024];
-            glGetProgramInfoLog(m_ID, sizeof(infolog), NULL, infolog);
-            std::cerr << "Error linking program: " << infolog << std::endl;
-        } else{
+        if (!success)
+        {
+            GLchar infoLog[1024];
+            glGetShaderInfoLog(m_ID, 1024, nullptr, infoLog);
+            std::cerr << "ERROR::SHADER: Link-time error:\n" << infoLog << std::endl;
+        }
+        else
+        {
             m_isCompiled = true;
         }
-        glDeleteShader(vertex_shaderID);
-        glDeleteShader(fragment_shaderID);
 
-        
-        
+        glDeleteShader(vertexShaderID);
+        glDeleteShader(fragmentShaderID);
     }
-    bool ShaderProgram::createShader(const std::string& source, const GLenum shaderType, GLuint& shaderID){
+
+
+    bool ShaderProgram::createShader(const std::string& source, const GLenum shaderType, GLuint& shaderID)
+    {
         shaderID = glCreateShader(shaderType);
-        const char* source_cstr = source.c_str();
-        glShaderSource(shaderID, 1, &source_cstr, NULL);
+        const char* code = source.c_str();
+        glShaderSource(shaderID, 1, &code, nullptr);
         glCompileShader(shaderID);
+
         GLint success;
         glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
-        if(!success){
-            GLchar infolog[1024];
-            glGetShaderInfoLog(shaderID, sizeof(infolog), NULL, infolog);
-            std::cerr << "Error compiling shader: " << infolog << std::endl;
+        if (!success)
+        {
+            GLchar infoLog[1024];
+            glGetProgramInfoLog(shaderID, 1024, nullptr, infoLog);
+            std::cerr << "ERROR::SHADER: Compile-time error:\n" << infoLog << std::endl;
             return false;
         }
         return true;
     }
-    ShaderProgram::~ShaderProgram(){
-        if(m_isCompiled){
-            glDeleteProgram(m_ID);
-        }
+
+    ShaderProgram::~ShaderProgram()
+    {
+        glDeleteProgram(m_ID);
     }
-    void ShaderProgram::use() const {
+
+    void ShaderProgram::use() const
+    {
         glUseProgram(m_ID);
     }
 
-    ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other) noexcept {
+    ShaderProgram& ShaderProgram::operator=(ShaderProgram&& shaderProgram) noexcept
+    {
         glDeleteProgram(m_ID);
-        m_ID = other.m_ID;
-        m_isCompiled = other.m_isCompiled;
+        m_ID = shaderProgram.m_ID;
+        m_isCompiled = shaderProgram.m_isCompiled;
 
-        other.m_ID = 0;
-        other.m_isCompiled = false;
+        shaderProgram.m_ID = 0;
+        shaderProgram.m_isCompiled = false;
         return *this;
     }
-    ShaderProgram::ShaderProgram(ShaderProgram&& other) noexcept{
-        m_ID = other.m_ID;
-        m_isCompiled = other.m_isCompiled;
-        other.m_ID = 0;
-        other.m_isCompiled = false;
+
+    ShaderProgram::ShaderProgram(ShaderProgram&& shaderProgram) noexcept
+    {
+        m_ID = shaderProgram.m_ID;
+        m_isCompiled = shaderProgram.m_isCompiled;
+
+        shaderProgram.m_ID = 0;
+        shaderProgram.m_isCompiled = false;
     }
-    bool ShaderProgram::isCompiled(){
-        return m_isCompiled;
-    }
+
 }

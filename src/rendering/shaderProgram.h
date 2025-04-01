@@ -15,7 +15,7 @@ namespace Renderer{
         ShaderProgram& operator=(ShaderProgram&&) noexcept;
         ShaderProgram(ShaderProgram&&) noexcept;
         ~ShaderProgram();
-        bool isCompiled();
+        bool isCompiled() const { return m_isCompiled; }
         void use() const;
         
     };
